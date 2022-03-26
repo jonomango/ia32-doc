@@ -1,6 +1,11 @@
 #pragma once
 #include <stdint.h>
 
+#if defined(_MSC_EXTENSIONS)
+#pragma warning(push)
+#pragma warning(disable: 4201)
+#endif
+
 /**
  * @defgroup intel_manual \
  *           Intel Manual
@@ -86,8 +91,8 @@ typedef union {
 #define CR4_OS_XMM_EXCEPTION_SUPPORT                                 0x400
     uint64_t usermode_instruction_prevention                         : 1;
 #define CR4_USERMODE_INSTRUCTION_PREVENTION                          0x800
-    uint64_t la57_enable                                             : 1;
-#define CR4_LA57_ENABLE                                              0x1000
+    uint64_t linear_addresses_57_bit                                 : 1;
+#define CR4_LINEAR_ADDRESSES_57_BIT                                  0x1000
     uint64_t vmx_enable                                              : 1;
 #define CR4_VMX_ENABLE                                               0x2000
     uint64_t smx_enable                                              : 1;
@@ -99,18 +104,18 @@ typedef union {
 #define CR4_PCID_ENABLE                                              0x20000
     uint64_t os_xsave                                                : 1;
 #define CR4_OS_XSAVE                                                 0x40000
-    uint64_t kl_enable                                               : 1;
-#define CR4_KL_ENABLE                                                0x80000
+    uint64_t key_locker_enable                                       : 1;
+#define CR4_KEY_LOCKER_ENABLE                                        0x80000
     uint64_t smep_enable                                             : 1;
 #define CR4_SMEP_ENABLE                                              0x100000
     uint64_t smap_enable                                             : 1;
 #define CR4_SMAP_ENABLE                                              0x200000
     uint64_t protection_key_enable                                   : 1;
 #define CR4_PROTECTION_KEY_ENABLE                                    0x400000
-    uint64_t cet_enable                                              : 1;
-#define CR4_CET_ENABLE                                               0x800000
-    uint64_t pks_enable                                              : 1;
-#define CR4_PKS_ENABLE                                               0x1000000
+    uint64_t control_flow_enforcement_enable                         : 1;
+#define CR4_CONTROL_FLOW_ENFORCEMENT_ENABLE                          0x800000
+    uint64_t protection_key_for_supervisor_mode_enable               : 1;
+#define CR4_PROTECTION_KEY_FOR_SUPERVISOR_MODE_ENABLE                0x1000000
     uint64_t reserved_2                                              : 39;
   };
 
@@ -563,7 +568,10 @@ typedef struct {
       uint32_t reserved_3                                            : 1;
       uint32_t ignoring_idle_logical_processor_hwp_request           : 1;
 #define CPUID_EAX_IGNORING_IDLE_LOGICAL_PROCESSOR_HWP_REQUEST        0x100000
-      uint32_t reserved_4                                            : 11;
+      uint32_t reserved_4                                            : 2;
+      uint32_t intel_thread_director                                 : 1;
+#define CPUID_EAX_INTEL_THREAD_DIRECTOR                              0x800000
+      uint32_t reserved_5                                            : 8;
     };
 
     uint32_t Flags;
@@ -584,9 +592,12 @@ typedef struct {
       uint32_t hardware_coordination_feedback_capability             : 1;
 #define CPUID_ECX_HARDWARE_COORDINATION_FEEDBACK_CAPABILITY          0x01
       uint32_t reserved_1                                            : 2;
-      uint32_t performance_energy_bias_preference                    : 1;
-#define CPUID_ECX_PERFORMANCE_ENERGY_BIAS_PREFERENCE                 0x08
-      uint32_t reserved_2                                            : 28;
+      uint32_t number_of_intel_thread_director_classes               : 1;
+#define CPUID_ECX_NUMBER_OF_INTEL_THREAD_DIRECTOR_CLASSES            0x08
+      uint32_t reserved_2                                            : 4;
+      uint32_t performance_energy_bias_preference                    : 8;
+#define CPUID_ECX_PERFORMANCE_ENERGY_BIAS_PREFERENCE                 0xFF00
+      uint32_t reserved_3                                            : 16;
     };
 
     uint32_t Flags;
@@ -696,15 +707,48 @@ typedef struct {
 #define CPUID_ECX_PKU                                                0x08
       uint32_t ospke                                                 : 1;
 #define CPUID_ECX_OSPKE                                              0x10
-      uint32_t reserved_1                                            : 12;
+      uint32_t waitpkg                                               : 1;
+#define CPUID_ECX_WAITPKG                                            0x20
+      uint32_t avx512_vbmi2                                          : 1;
+#define CPUID_ECX_AVX512_VBMI2                                       0x40
+      uint32_t cet_ss                                                : 1;
+#define CPUID_ECX_CET_SS                                             0x80
+      uint32_t gfni                                                  : 1;
+#define CPUID_ECX_GFNI                                               0x100
+      uint32_t vaes                                                  : 1;
+#define CPUID_ECX_VAES                                               0x200
+      uint32_t vpclmulqdq                                            : 1;
+#define CPUID_ECX_VPCLMULQDQ                                         0x400
+      uint32_t avx512_vnni                                           : 1;
+#define CPUID_ECX_AVX512_VNNI                                        0x800
+      uint32_t avx512_bitalg                                         : 1;
+#define CPUID_ECX_AVX512_BITALG                                      0x1000
+      uint32_t tme_en                                                : 1;
+#define CPUID_ECX_TME_EN                                             0x2000
+      uint32_t avx512_vpopcntdq                                      : 1;
+#define CPUID_ECX_AVX512_VPOPCNTDQ                                   0x4000
+      uint32_t reserved_1                                            : 1;
+      uint32_t la57                                                  : 1;
+#define CPUID_ECX_LA57                                               0x10000
       uint32_t mawau                                                 : 5;
 #define CPUID_ECX_MAWAU                                              0x3E0000
       uint32_t rdpid                                                 : 1;
 #define CPUID_ECX_RDPID                                              0x400000
-      uint32_t reserved_2                                            : 7;
+      uint32_t kl                                                    : 1;
+#define CPUID_ECX_KL                                                 0x800000
+      uint32_t reserved_2                                            : 1;
+      uint32_t cldemote                                              : 1;
+#define CPUID_ECX_CLDEMOTE                                           0x2000000
+      uint32_t reserved_3                                            : 1;
+      uint32_t movdiri                                               : 1;
+#define CPUID_ECX_MOVDIRI                                            0x8000000
+      uint32_t movdir64b                                             : 1;
+#define CPUID_ECX_MOVDIR64B                                          0x10000000
+      uint32_t reserved_4                                            : 1;
       uint32_t sgx_lc                                                : 1;
 #define CPUID_ECX_SGX_LC                                             0x40000000
-      uint32_t reserved_3                                            : 1;
+      uint32_t pks                                                   : 1;
+#define CPUID_ECX_PKS                                                0x80000000
     };
 
     uint32_t Flags;
@@ -712,8 +756,43 @@ typedef struct {
 
   union {
     struct {
-      uint32_t reserved                                              : 32;
-#define CPUID_EDX_RESERVED                                           0xFFFFFFFF
+      uint32_t reserved_1                                            : 2;
+      uint32_t avx512_4vnniw                                         : 1;
+#define CPUID_EDX_AVX512_4VNNIW                                      0x04
+      uint32_t avx512_4fmaps                                         : 1;
+#define CPUID_EDX_AVX512_4FMAPS                                      0x08
+      uint32_t fast_short_rep_mov                                    : 1;
+#define CPUID_EDX_FAST_SHORT_REP_MOV                                 0x10
+      uint32_t reserved_2                                            : 3;
+      uint32_t avx512_vp2intersect                                   : 1;
+#define CPUID_EDX_AVX512_VP2INTERSECT                                0x100
+      uint32_t reserved_3                                            : 1;
+      uint32_t md_clear                                              : 1;
+#define CPUID_EDX_MD_CLEAR                                           0x400
+      uint32_t reserved_4                                            : 3;
+      uint32_t serialize                                             : 1;
+#define CPUID_EDX_SERIALIZE                                          0x4000
+      uint32_t hybrid                                                : 1;
+#define CPUID_EDX_HYBRID                                             0x8000
+      uint32_t reserved_5                                            : 2;
+      uint32_t pconfig                                               : 1;
+#define CPUID_EDX_PCONFIG                                            0x40000
+      uint32_t reserved_6                                            : 1;
+      uint32_t cet_ibt                                               : 1;
+#define CPUID_EDX_CET_IBT                                            0x100000
+      uint32_t reserved_7                                            : 5;
+      uint32_t ibrs_ibpb                                             : 1;
+#define CPUID_EDX_IBRS_IBPB                                          0x4000000
+      uint32_t stibp                                                 : 1;
+#define CPUID_EDX_STIBP                                              0x8000000
+      uint32_t l1d_flush                                             : 1;
+#define CPUID_EDX_L1D_FLUSH                                          0x10000000
+      uint32_t ia32_arch_capabilities                                : 1;
+#define CPUID_EDX_IA32_ARCH_CAPABILITIES                             0x20000000
+      uint32_t ia32_core_capabilities                                : 1;
+#define CPUID_EDX_IA32_CORE_CAPABILITIES                             0x40000000
+      uint32_t ssbd                                                  : 1;
+#define CPUID_EDX_SSBD                                               0x80000000
     };
 
     uint32_t Flags;
@@ -965,10 +1044,19 @@ typedef struct {
 #define CPUID_ECX_PT_STATE                                           0x100
       uint32_t used_for_xcr0_2                                       : 1;
 #define CPUID_ECX_USED_FOR_XCR0_2                                    0x200
-      uint32_t reserved_1                                            : 3;
+      uint32_t reserved_1                                            : 1;
+      uint32_t cet_user_state                                        : 1;
+#define CPUID_ECX_CET_USER_STATE                                     0x800
+      uint32_t cet_supervisor_state                                  : 1;
+#define CPUID_ECX_CET_SUPERVISOR_STATE                               0x1000
+      uint32_t hdc_state                                             : 1;
+#define CPUID_ECX_HDC_STATE                                          0x2000
+      uint32_t reserved_2                                            : 1;
+      uint32_t lbr_state                                             : 1;
+#define CPUID_ECX_LBR_STATE                                          0x8000
       uint32_t hwp_state                                             : 1;
-#define CPUID_ECX_HWP_STATE                                          0x2000
-      uint32_t reserved_2                                            : 18;
+#define CPUID_ECX_HWP_STATE                                          0x10000
+      uint32_t reserved_3                                            : 15;
     };
 
     uint32_t Flags;
@@ -976,8 +1064,8 @@ typedef struct {
 
   union {
     struct {
-      uint32_t reserved                                              : 32;
-#define CPUID_EDX_RESERVED                                           0xFFFFFFFF
+      uint32_t supported_upper_ia32_xss_bits                         : 32;
+#define CPUID_EDX_SUPPORTED_UPPER_IA32_XSS_BITS                      0xFFFFFFFF
     };
 
     uint32_t Flags;
@@ -1524,7 +1612,13 @@ typedef struct {
 #define CPUID_EBX_FLAG4                                              0x10
       uint32_t flag5                                                 : 1;
 #define CPUID_EBX_FLAG5                                              0x20
-      uint32_t reserved_1                                            : 26;
+      uint32_t flag6                                                 : 1;
+#define CPUID_EBX_FLAG6                                              0x40
+      uint32_t flag7                                                 : 1;
+#define CPUID_EBX_FLAG7                                              0x80
+      uint32_t flag8                                                 : 1;
+#define CPUID_EBX_FLAG8                                              0x100
+      uint32_t reserved_1                                            : 23;
     };
 
     uint32_t Flags;
@@ -2423,6 +2517,32 @@ typedef struct {
   uint64_t thread_adjust;
 } ia32_tsc_adjust_register;
 
+#define IA32_SPEC_CTRL                                               0x00000048
+typedef union {
+  struct {
+    uint64_t ibrs                                                    : 1;
+#define IA32_SPEC_CTRL_IBRS                                          0x01
+    uint64_t stibp                                                   : 1;
+#define IA32_SPEC_CTRL_STIBP                                         0x02
+    uint64_t ssbd                                                    : 1;
+#define IA32_SPEC_CTRL_SSBD                                          0x04
+    uint64_t reserved_1                                              : 61;
+  };
+
+  uint64_t Flags;
+} ia32_spec_ctrl_register;
+
+#define IA32_PRED_CMD                                                0x00000049
+typedef union {
+  struct {
+    uint64_t ibpb                                                    : 1;
+#define IA32_PRED_CMD_IBPB                                           0x01
+    uint64_t reserved_1                                              : 63;
+  };
+
+  uint64_t Flags;
+} ia32_pred_cmd_register;
+
 #define IA32_BIOS_UPDT_TRIG                                          0x00000079
 #define IA32_BIOS_SIGN_ID                                            0x0000008B
 typedef union {
@@ -2524,6 +2644,57 @@ typedef union {
 
   uint64_t Flags;
 } ia32_mtrrcap_register;
+
+#define IA32_ARCH_CAPABILITIES                                       0x0000010A
+typedef union {
+  struct {
+    uint64_t rdcl_no                                                 : 1;
+#define IA32_ARCH_CAPABILITIES_RDCL_NO                               0x01
+    uint64_t ibrs_all                                                : 1;
+#define IA32_ARCH_CAPABILITIES_IBRS_ALL                              0x02
+    uint64_t rsba                                                    : 1;
+#define IA32_ARCH_CAPABILITIES_RSBA                                  0x04
+    uint64_t skip_l1dfl_vmentry                                      : 1;
+#define IA32_ARCH_CAPABILITIES_SKIP_L1DFL_VMENTRY                    0x08
+    uint64_t ssb_no                                                  : 1;
+#define IA32_ARCH_CAPABILITIES_SSB_NO                                0x10
+    uint64_t mds_no                                                  : 1;
+#define IA32_ARCH_CAPABILITIES_MDS_NO                                0x20
+    uint64_t if_pschange_mc_no                                       : 1;
+#define IA32_ARCH_CAPABILITIES_IF_PSCHANGE_MC_NO                     0x40
+    uint64_t tsx_ctrl                                                : 1;
+#define IA32_ARCH_CAPABILITIES_TSX_CTRL                              0x80
+    uint64_t taa_no                                                  : 1;
+#define IA32_ARCH_CAPABILITIES_TAA_NO                                0x100
+    uint64_t reserved_1                                              : 55;
+  };
+
+  uint64_t Flags;
+} ia32_arch_capabilities_register;
+
+#define IA32_FLUSH_CMD                                               0x0000010B
+typedef union {
+  struct {
+    uint64_t l1d_flush                                               : 1;
+#define IA32_FLUSH_CMD_L1D_FLUSH                                     0x01
+    uint64_t reserved_1                                              : 63;
+  };
+
+  uint64_t Flags;
+} ia32_flush_cmd_register;
+
+#define IA32_TSX_CTRL                                                0x00000122
+typedef union {
+  struct {
+    uint64_t rtm_disable                                             : 1;
+#define IA32_TSX_CTRL_RTM_DISABLE                                    0x01
+    uint64_t tsx_cpuid_clear                                         : 1;
+#define IA32_TSX_CTRL_TSX_CPUID_CLEAR                                0x02
+    uint64_t reserved_1                                              : 62;
+  };
+
+  uint64_t Flags;
+} ia32_tsx_ctrl_register;
 
 #define IA32_SYSENTER_CS                                             0x00000174
 typedef union {
@@ -3065,7 +3236,7 @@ typedef union {
  */
 
 #define IA32_MTRR_FIX_COUNT                                          ((1 + 2 + 8) * 8)
-#define IA32_MTRR_VARIABLE_COUNT                                     0x000000FF
+#define IA32_MTRR_VARIABLE_COUNT                                     0x0000000A
 #define IA32_MTRR_COUNT                                              (IA32_MTRR_FIX_COUNT + IA32_MTRR_VARIABLE_COUNT)
 /**
  * @}
@@ -3594,7 +3765,9 @@ typedef union {
 #define IA32_VMX_PROCBASED_CTLS_CR3_LOAD_EXITING                     0x8000
     uint64_t cr3_store_exiting                                       : 1;
 #define IA32_VMX_PROCBASED_CTLS_CR3_STORE_EXITING                    0x10000
-    uint64_t reserved_5                                              : 2;
+    uint64_t activate_tertiary_controls                              : 1;
+#define IA32_VMX_PROCBASED_CTLS_ACTIVATE_TERTIARY_CONTROLS           0x20000
+    uint64_t reserved_5                                              : 1;
     uint64_t cr8_load_exiting                                        : 1;
 #define IA32_VMX_PROCBASED_CTLS_CR8_LOAD_EXITING                     0x80000
     uint64_t cr8_store_exiting                                       : 1;
@@ -3656,7 +3829,19 @@ typedef union {
 #define IA32_VMX_EXIT_CTLS_CLEAR_IA32_BNDCFGS                        0x800000
     uint64_t conceal_vmx_from_pt                                     : 1;
 #define IA32_VMX_EXIT_CTLS_CONCEAL_VMX_FROM_PT                       0x1000000
-    uint64_t reserved_6                                              : 39;
+    uint64_t clear_ia32_rtit_ctl                                     : 1;
+#define IA32_VMX_EXIT_CTLS_CLEAR_IA32_RTIT_CTL                       0x2000000
+    uint64_t clear_ia32_lbr_ctl                                      : 1;
+#define IA32_VMX_EXIT_CTLS_CLEAR_IA32_LBR_CTL                        0x4000000
+    uint64_t reserved_6                                              : 1;
+    uint64_t load_ia32_cet_state                                     : 1;
+#define IA32_VMX_EXIT_CTLS_LOAD_IA32_CET_STATE                       0x10000000
+    uint64_t load_ia32_pkrs                                          : 1;
+#define IA32_VMX_EXIT_CTLS_LOAD_IA32_PKRS                            0x20000000
+    uint64_t reserved_7                                              : 1;
+    uint64_t activate_secondary_controls                             : 1;
+#define IA32_VMX_EXIT_CTLS_ACTIVATE_SECONDARY_CONTROLS               0x80000000
+    uint64_t reserved_8                                              : 32;
   };
 
   uint64_t Flags;
@@ -3691,7 +3876,11 @@ typedef union {
     uint64_t reserved_4                                              : 1;
     uint64_t load_cet_state                                          : 1;
 #define IA32_VMX_ENTRY_CTLS_LOAD_CET_STATE                           0x100000
-    uint64_t reserved_5                                              : 43;
+    uint64_t load_ia32_lbr_ctl                                       : 1;
+#define IA32_VMX_ENTRY_CTLS_LOAD_IA32_LBR_CTL                        0x200000
+    uint64_t load_ia32_pkrs                                          : 1;
+#define IA32_VMX_ENTRY_CTLS_LOAD_IA32_PKRS                           0x400000
+    uint64_t reserved_5                                              : 41;
   };
 
   uint64_t Flags;
@@ -3842,7 +4031,9 @@ typedef union {
 #define IA32_VMX_EPT_VPID_CAP_EPT_ACCESSED_AND_DIRTY_FLAGS           0x200000
     uint64_t advanced_vmexit_ept_violations_information              : 1;
 #define IA32_VMX_EPT_VPID_CAP_ADVANCED_VMEXIT_EPT_VIOLATIONS_INFORMATION 0x400000
-    uint64_t reserved_6                                              : 2;
+    uint64_t supervisor_shadow_stack                                 : 1;
+#define IA32_VMX_EPT_VPID_CAP_SUPERVISOR_SHADOW_STACK                0x800000
+    uint64_t reserved_6                                              : 1;
     uint64_t invept_single_context                                   : 1;
 #define IA32_VMX_EPT_VPID_CAP_INVEPT_SINGLE_CONTEXT                  0x2000000
     uint64_t invept_all_contexts                                     : 1;
@@ -3859,7 +4050,10 @@ typedef union {
 #define IA32_VMX_EPT_VPID_CAP_INVVPID_ALL_CONTEXTS                   0x40000000000
     uint64_t invvpid_single_context_retain_globals                   : 1;
 #define IA32_VMX_EPT_VPID_CAP_INVVPID_SINGLE_CONTEXT_RETAIN_GLOBALS  0x80000000000
-    uint64_t reserved_9                                              : 20;
+    uint64_t reserved_9                                              : 4;
+    uint64_t max_hlat_prefix_size                                    : 6;
+#define IA32_VMX_EPT_VPID_CAP_MAX_HLAT_PREFIX_SIZE                   0x3F000000000000
+    uint64_t reserved_10                                             : 10;
   };
 
   uint64_t Flags;
@@ -3899,6 +4093,33 @@ typedef union {
 
   uint64_t Flags;
 } ia32_vmx_vmfunc_register;
+
+#define IA32_VMX_PROCBASED_CTLS3                                     0x00000492
+typedef union {
+  struct {
+    uint64_t loadiwkey_exiting                                       : 1;
+#define IA32_VMX_PROCBASED_CTLS3_LOADIWKEY_EXITING                   0x01
+    uint64_t enable_hlat                                             : 1;
+#define IA32_VMX_PROCBASED_CTLS3_ENABLE_HLAT                         0x02
+    uint64_t ept_paging_write                                        : 1;
+#define IA32_VMX_PROCBASED_CTLS3_EPT_PAGING_WRITE                    0x04
+    uint64_t guest_paging                                            : 1;
+#define IA32_VMX_PROCBASED_CTLS3_GUEST_PAGING                        0x08
+    uint64_t reserved_1                                              : 60;
+  };
+
+  uint64_t Flags;
+} ia32_vmx_procbased_ctls3_register;
+
+#define IA32_VMX_EXIT_CTLS2                                          0x00000493
+typedef union {
+  struct {
+    uint64_t reserved                                                : 64;
+#define IA32_VMX_EXIT_CTLS2_RESERVED                                 0xFFFFFFFFFFFFFFFF
+  };
+
+  uint64_t Flags;
+} ia32_vmx_exit_ctls2_register;
 
 /**
  * @defgroup ia32_a_pmc \
@@ -4110,6 +4331,65 @@ typedef union {
  */
 
 #define IA32_DS_AREA                                                 0x00000600
+#define IA32_U_CET                                                   0x000006A0
+typedef union {
+  struct {
+    uint64_t sh_stk_en                                               : 1;
+#define IA32_U_CET_SH_STK_EN                                         0x01
+    uint64_t wr_shstk_en                                             : 1;
+#define IA32_U_CET_WR_SHSTK_EN                                       0x02
+    uint64_t endbr_en                                                : 1;
+#define IA32_U_CET_ENDBR_EN                                          0x04
+    uint64_t leg_iw_en                                               : 1;
+#define IA32_U_CET_LEG_IW_EN                                         0x08
+    uint64_t no_track_en                                             : 1;
+#define IA32_U_CET_NO_TRACK_EN                                       0x10
+    uint64_t suppress_dis                                            : 1;
+#define IA32_U_CET_SUPPRESS_DIS                                      0x20
+    uint64_t reserved_1                                              : 4;
+    uint64_t suppress                                                : 1;
+#define IA32_U_CET_SUPPRESS                                          0x400
+    uint64_t tracker                                                 : 1;
+#define IA32_U_CET_TRACKER                                           0x800
+    uint64_t eb_leg_bitmap_base                                      : 52;
+#define IA32_U_CET_EB_LEG_BITMAP_BASE                                0xFFFFFFFFFFFFF000
+  };
+
+  uint64_t Flags;
+} ia32_u_cet_register;
+
+#define IA32_S_CET                                                   0x000006A2
+typedef union {
+  struct {
+    uint64_t sh_stk_en                                               : 1;
+#define IA32_S_CET_SH_STK_EN                                         0x01
+    uint64_t wr_shstk_en                                             : 1;
+#define IA32_S_CET_WR_SHSTK_EN                                       0x02
+    uint64_t endbr_en                                                : 1;
+#define IA32_S_CET_ENDBR_EN                                          0x04
+    uint64_t leg_iw_en                                               : 1;
+#define IA32_S_CET_LEG_IW_EN                                         0x08
+    uint64_t no_track_en                                             : 1;
+#define IA32_S_CET_NO_TRACK_EN                                       0x10
+    uint64_t suppress_dis                                            : 1;
+#define IA32_S_CET_SUPPRESS_DIS                                      0x20
+    uint64_t reserved_1                                              : 4;
+    uint64_t suppress                                                : 1;
+#define IA32_S_CET_SUPPRESS                                          0x400
+    uint64_t tracker                                                 : 1;
+#define IA32_S_CET_TRACKER                                           0x800
+    uint64_t eb_leg_bitmap_base                                      : 52;
+#define IA32_S_CET_EB_LEG_BITMAP_BASE                                0xFFFFFFFFFFFFF000
+  };
+
+  uint64_t Flags;
+} ia32_s_cet_register;
+
+#define IA32_PL0_SSP                                                 0x000006A4
+#define IA32_PL1_SSP                                                 0x000006A5
+#define IA32_PL2_SSP                                                 0x000006A6
+#define IA32_PL3_SSP                                                 0x000006A7
+#define IA32_INTERRUPT_SSP_TABLE_ADDR                                0x000006A8
 #define IA32_TSC_DEADLINE                                            0x000006E0
 #define IA32_PM_ENABLE                                               0x00000770
 typedef union {
@@ -4615,8 +4895,10 @@ typedef union {
     uint64_t reserved_1                                              : 1;
     uint64_t must_be_zero                                            : 1;
 #define PML4E_64_MUST_BE_ZERO                                        0x80
-    uint64_t ignored_1                                               : 4;
-#define PML4E_64_IGNORED_1                                           0xF00
+    uint64_t ignored_1                                               : 3;
+#define PML4E_64_IGNORED_1                                           0x700
+    uint64_t restart                                                 : 1;
+#define PML4E_64_RESTART                                             0x800
     uint64_t page_frame_number                                       : 36;
 #define PML4E_64_PAGE_FRAME_NUMBER                                   0xFFFFFFFFF000
     uint64_t reserved_2                                              : 4;
@@ -4649,8 +4931,10 @@ typedef union {
 #define PDPTE_1GB_64_LARGE_PAGE                                      0x80
     uint64_t global                                                  : 1;
 #define PDPTE_1GB_64_GLOBAL                                          0x100
-    uint64_t ignored_1                                               : 3;
-#define PDPTE_1GB_64_IGNORED_1                                       0xE00
+    uint64_t ignored_1                                               : 2;
+#define PDPTE_1GB_64_IGNORED_1                                       0x600
+    uint64_t restart                                                 : 1;
+#define PDPTE_1GB_64_RESTART                                         0x800
     uint64_t pat                                                     : 1;
 #define PDPTE_1GB_64_PAT                                             0x1000
     uint64_t reserved_1                                              : 17;
@@ -4685,8 +4969,10 @@ typedef union {
     uint64_t reserved_1                                              : 1;
     uint64_t large_page                                              : 1;
 #define PDPTE_64_LARGE_PAGE                                          0x80
-    uint64_t ignored_1                                               : 4;
-#define PDPTE_64_IGNORED_1                                           0xF00
+    uint64_t ignored_1                                               : 3;
+#define PDPTE_64_IGNORED_1                                           0x700
+    uint64_t restart                                                 : 1;
+#define PDPTE_64_RESTART                                             0x800
     uint64_t page_frame_number                                       : 36;
 #define PDPTE_64_PAGE_FRAME_NUMBER                                   0xFFFFFFFFF000
     uint64_t reserved_2                                              : 4;
@@ -4719,8 +5005,10 @@ typedef union {
 #define PDE_2MB_64_LARGE_PAGE                                        0x80
     uint64_t global                                                  : 1;
 #define PDE_2MB_64_GLOBAL                                            0x100
-    uint64_t ignored_1                                               : 3;
-#define PDE_2MB_64_IGNORED_1                                         0xE00
+    uint64_t ignored_1                                               : 2;
+#define PDE_2MB_64_IGNORED_1                                         0x600
+    uint64_t restart                                                 : 1;
+#define PDE_2MB_64_RESTART                                           0x800
     uint64_t pat                                                     : 1;
 #define PDE_2MB_64_PAT                                               0x1000
     uint64_t reserved_1                                              : 8;
@@ -4755,8 +5043,10 @@ typedef union {
     uint64_t reserved_1                                              : 1;
     uint64_t large_page                                              : 1;
 #define PDE_64_LARGE_PAGE                                            0x80
-    uint64_t ignored_1                                               : 4;
-#define PDE_64_IGNORED_1                                             0xF00
+    uint64_t ignored_1                                               : 3;
+#define PDE_64_IGNORED_1                                             0x700
+    uint64_t restart                                                 : 1;
+#define PDE_64_RESTART                                               0x800
     uint64_t page_frame_number                                       : 36;
 #define PDE_64_PAGE_FRAME_NUMBER                                     0xFFFFFFFFF000
     uint64_t reserved_2                                              : 4;
@@ -4789,8 +5079,10 @@ typedef union {
 #define PTE_64_PAT                                                   0x80
     uint64_t global                                                  : 1;
 #define PTE_64_GLOBAL                                                0x100
-    uint64_t ignored_1                                               : 3;
-#define PTE_64_IGNORED_1                                             0xE00
+    uint64_t ignored_1                                               : 2;
+#define PTE_64_IGNORED_1                                             0x600
+    uint64_t restart                                                 : 1;
+#define PTE_64_RESTART                                               0x800
     uint64_t page_frame_number                                       : 36;
 #define PTE_64_PAGE_FRAME_NUMBER                                     0xFFFFFFFFF000
     uint64_t reserved_1                                              : 4;
@@ -4825,8 +5117,10 @@ typedef union {
 #define PT_ENTRY_64_LARGE_PAGE                                       0x80
     uint64_t global                                                  : 1;
 #define PT_ENTRY_64_GLOBAL                                           0x100
-    uint64_t ignored_1                                               : 3;
-#define PT_ENTRY_64_IGNORED_1                                        0xE00
+    uint64_t ignored_1                                               : 2;
+#define PT_ENTRY_64_IGNORED_1                                        0x600
+    uint64_t restart                                                 : 1;
+#define PT_ENTRY_64_RESTART                                          0x800
     uint64_t page_frame_number                                       : 36;
 #define PT_ENTRY_64_PAGE_FRAME_NUMBER                                0xFFFFFFFFF000
     uint64_t reserved_1                                              : 4;
@@ -5432,7 +5726,15 @@ typedef union {
 #define VMX_EXIT_QUALIFICATION_EPT_VIOLATION_EXECUTE_DISABLE_PAGE    0x800
     uint64_t nmi_unblocking                                          : 1;
 #define VMX_EXIT_QUALIFICATION_EPT_VIOLATION_NMI_UNBLOCKING          0x1000
-    uint64_t reserved_1                                              : 51;
+    uint64_t shadow_stack_access                                     : 1;
+#define VMX_EXIT_QUALIFICATION_EPT_VIOLATION_SHADOW_STACK_ACCESS     0x2000
+    uint64_t supervisor_shadow_stack                                 : 1;
+#define VMX_EXIT_QUALIFICATION_EPT_VIOLATION_SUPERVISOR_SHADOW_STACK 0x4000
+    uint64_t guest_paging_verification                               : 1;
+#define VMX_EXIT_QUALIFICATION_EPT_VIOLATION_GUEST_PAGING_VERIFICATION 0x8000
+    uint64_t asynchronous_to_instruction                             : 1;
+#define VMX_EXIT_QUALIFICATION_EPT_VIOLATION_ASYNCHRONOUS_TO_INSTRUCTION 0x10000
+    uint64_t reserved_1                                              : 47;
   };
 
   uint64_t Flags;
@@ -5794,140 +6096,166 @@ typedef union {
 typedef union {
   struct {
     uint64_t read_access                                             : 1;
-#define EPT_PDPTE_1GB_READ_ACCESS                                    0x01
+#define EPDPTE_1GB_READ_ACCESS                                       0x01
     uint64_t write_access                                            : 1;
-#define EPT_PDPTE_1GB_WRITE_ACCESS                                   0x02
+#define EPDPTE_1GB_WRITE_ACCESS                                      0x02
     uint64_t execute_access                                          : 1;
-#define EPT_PDPTE_1GB_EXECUTE_ACCESS                                 0x04
+#define EPDPTE_1GB_EXECUTE_ACCESS                                    0x04
     uint64_t memory_type                                             : 3;
-#define EPT_PDPTE_1GB_MEMORY_TYPE                                    0x38
+#define EPDPTE_1GB_MEMORY_TYPE                                       0x38
     uint64_t ignore_pat                                              : 1;
-#define EPT_PDPTE_1GB_IGNORE_PAT                                     0x40
+#define EPDPTE_1GB_IGNORE_PAT                                        0x40
     uint64_t large_page                                              : 1;
-#define EPT_PDPTE_1GB_LARGE_PAGE                                     0x80
+#define EPDPTE_1GB_LARGE_PAGE                                        0x80
     uint64_t accessed                                                : 1;
-#define EPT_PDPTE_1GB_ACCESSED                                       0x100
+#define EPDPTE_1GB_ACCESSED                                          0x100
     uint64_t dirty                                                   : 1;
-#define EPT_PDPTE_1GB_DIRTY                                          0x200
+#define EPDPTE_1GB_DIRTY                                             0x200
     uint64_t user_mode_execute                                       : 1;
-#define EPT_PDPTE_1GB_USER_MODE_EXECUTE                              0x400
+#define EPDPTE_1GB_USER_MODE_EXECUTE                                 0x400
     uint64_t reserved_1                                              : 19;
     uint64_t page_frame_number                                       : 18;
-#define EPT_PDPTE_1GB_PAGE_FRAME_NUMBER                              0xFFFFC0000000
-    uint64_t reserved_2                                              : 15;
+#define EPDPTE_1GB_PAGE_FRAME_NUMBER                                 0xFFFFC0000000
+    uint64_t reserved_2                                              : 9;
+    uint64_t verify_guest_paging                                     : 1;
+#define EPDPTE_1GB_VERIFY_GUEST_PAGING                               0x200000000000000
+    uint64_t paging_write_access                                     : 1;
+#define EPDPTE_1GB_PAGING_WRITE_ACCESS                               0x400000000000000
+    uint64_t reserved_3                                              : 1;
+    uint64_t supervisor_shadow_stack                                 : 1;
+#define EPDPTE_1GB_SUPERVISOR_SHADOW_STACK                           0x1000000000000000
+    uint64_t reserved_4                                              : 2;
     uint64_t suppress_ve                                             : 1;
-#define EPT_PDPTE_1GB_SUPPRESS_VE                                    0x8000000000000000
+#define EPDPTE_1GB_SUPPRESS_VE                                       0x8000000000000000
   };
 
   uint64_t Flags;
-} ept_pdpte_1gb;
+} epdpte_1gb;
 
 typedef union {
   struct {
     uint64_t read_access                                             : 1;
-#define EPT_PDPTE_READ_ACCESS                                        0x01
+#define EPDPTE_READ_ACCESS                                           0x01
     uint64_t write_access                                            : 1;
-#define EPT_PDPTE_WRITE_ACCESS                                       0x02
+#define EPDPTE_WRITE_ACCESS                                          0x02
     uint64_t execute_access                                          : 1;
-#define EPT_PDPTE_EXECUTE_ACCESS                                     0x04
+#define EPDPTE_EXECUTE_ACCESS                                        0x04
     uint64_t reserved_1                                              : 5;
     uint64_t accessed                                                : 1;
-#define EPT_PDPTE_ACCESSED                                           0x100
+#define EPDPTE_ACCESSED                                              0x100
     uint64_t reserved_2                                              : 1;
     uint64_t user_mode_execute                                       : 1;
-#define EPT_PDPTE_USER_MODE_EXECUTE                                  0x400
+#define EPDPTE_USER_MODE_EXECUTE                                     0x400
     uint64_t reserved_3                                              : 1;
     uint64_t page_frame_number                                       : 36;
-#define EPT_PDPTE_PAGE_FRAME_NUMBER                                  0xFFFFFFFFF000
+#define EPDPTE_PAGE_FRAME_NUMBER                                     0xFFFFFFFFF000
     uint64_t reserved_4                                              : 16;
   };
 
   uint64_t Flags;
-} ept_pdpte;
+} epdpte;
 
 typedef union {
   struct {
     uint64_t read_access                                             : 1;
-#define EPT_PDE_2MB_READ_ACCESS                                      0x01
+#define EPDE_2MB_READ_ACCESS                                         0x01
     uint64_t write_access                                            : 1;
-#define EPT_PDE_2MB_WRITE_ACCESS                                     0x02
+#define EPDE_2MB_WRITE_ACCESS                                        0x02
     uint64_t execute_access                                          : 1;
-#define EPT_PDE_2MB_EXECUTE_ACCESS                                   0x04
+#define EPDE_2MB_EXECUTE_ACCESS                                      0x04
     uint64_t memory_type                                             : 3;
-#define EPT_PDE_2MB_MEMORY_TYPE                                      0x38
+#define EPDE_2MB_MEMORY_TYPE                                         0x38
     uint64_t ignore_pat                                              : 1;
-#define EPT_PDE_2MB_IGNORE_PAT                                       0x40
+#define EPDE_2MB_IGNORE_PAT                                          0x40
     uint64_t large_page                                              : 1;
-#define EPT_PDE_2MB_LARGE_PAGE                                       0x80
+#define EPDE_2MB_LARGE_PAGE                                          0x80
     uint64_t accessed                                                : 1;
-#define EPT_PDE_2MB_ACCESSED                                         0x100
+#define EPDE_2MB_ACCESSED                                            0x100
     uint64_t dirty                                                   : 1;
-#define EPT_PDE_2MB_DIRTY                                            0x200
+#define EPDE_2MB_DIRTY                                               0x200
     uint64_t user_mode_execute                                       : 1;
-#define EPT_PDE_2MB_USER_MODE_EXECUTE                                0x400
+#define EPDE_2MB_USER_MODE_EXECUTE                                   0x400
     uint64_t reserved_1                                              : 10;
     uint64_t page_frame_number                                       : 27;
-#define EPT_PDE_2MB_PAGE_FRAME_NUMBER                                0xFFFFFFE00000
-    uint64_t reserved_2                                              : 15;
+#define EPDE_2MB_PAGE_FRAME_NUMBER                                   0xFFFFFFE00000
+    uint64_t reserved_2                                              : 9;
+    uint64_t verify_guest_paging                                     : 1;
+#define EPDE_2MB_VERIFY_GUEST_PAGING                                 0x200000000000000
+    uint64_t paging_write_access                                     : 1;
+#define EPDE_2MB_PAGING_WRITE_ACCESS                                 0x400000000000000
+    uint64_t reserved_3                                              : 1;
+    uint64_t supervisor_shadow_stack                                 : 1;
+#define EPDE_2MB_SUPERVISOR_SHADOW_STACK                             0x1000000000000000
+    uint64_t reserved_4                                              : 2;
     uint64_t suppress_ve                                             : 1;
-#define EPT_PDE_2MB_SUPPRESS_VE                                      0x8000000000000000
+#define EPDE_2MB_SUPPRESS_VE                                         0x8000000000000000
   };
 
   uint64_t Flags;
-} ept_pde_2mb;
+} epde_2mb;
 
 typedef union {
   struct {
     uint64_t read_access                                             : 1;
-#define EPT_PDE_READ_ACCESS                                          0x01
+#define EPDE_READ_ACCESS                                             0x01
     uint64_t write_access                                            : 1;
-#define EPT_PDE_WRITE_ACCESS                                         0x02
+#define EPDE_WRITE_ACCESS                                            0x02
     uint64_t execute_access                                          : 1;
-#define EPT_PDE_EXECUTE_ACCESS                                       0x04
+#define EPDE_EXECUTE_ACCESS                                          0x04
     uint64_t reserved_1                                              : 5;
     uint64_t accessed                                                : 1;
-#define EPT_PDE_ACCESSED                                             0x100
+#define EPDE_ACCESSED                                                0x100
     uint64_t reserved_2                                              : 1;
     uint64_t user_mode_execute                                       : 1;
-#define EPT_PDE_USER_MODE_EXECUTE                                    0x400
+#define EPDE_USER_MODE_EXECUTE                                       0x400
     uint64_t reserved_3                                              : 1;
     uint64_t page_frame_number                                       : 36;
-#define EPT_PDE_PAGE_FRAME_NUMBER                                    0xFFFFFFFFF000
+#define EPDE_PAGE_FRAME_NUMBER                                       0xFFFFFFFFF000
     uint64_t reserved_4                                              : 16;
   };
 
   uint64_t Flags;
-} ept_pde;
+} epde;
 
 typedef union {
   struct {
     uint64_t read_access                                             : 1;
-#define EPT_PTE_READ_ACCESS                                          0x01
+#define EPTE_READ_ACCESS                                             0x01
     uint64_t write_access                                            : 1;
-#define EPT_PTE_WRITE_ACCESS                                         0x02
+#define EPTE_WRITE_ACCESS                                            0x02
     uint64_t execute_access                                          : 1;
-#define EPT_PTE_EXECUTE_ACCESS                                       0x04
+#define EPTE_EXECUTE_ACCESS                                          0x04
     uint64_t memory_type                                             : 3;
-#define EPT_PTE_MEMORY_TYPE                                          0x38
+#define EPTE_MEMORY_TYPE                                             0x38
     uint64_t ignore_pat                                              : 1;
-#define EPT_PTE_IGNORE_PAT                                           0x40
+#define EPTE_IGNORE_PAT                                              0x40
     uint64_t reserved_1                                              : 1;
     uint64_t accessed                                                : 1;
-#define EPT_PTE_ACCESSED                                             0x100
+#define EPTE_ACCESSED                                                0x100
     uint64_t dirty                                                   : 1;
-#define EPT_PTE_DIRTY                                                0x200
+#define EPTE_DIRTY                                                   0x200
     uint64_t user_mode_execute                                       : 1;
-#define EPT_PTE_USER_MODE_EXECUTE                                    0x400
+#define EPTE_USER_MODE_EXECUTE                                       0x400
     uint64_t reserved_2                                              : 1;
     uint64_t page_frame_number                                       : 36;
-#define EPT_PTE_PAGE_FRAME_NUMBER                                    0xFFFFFFFFF000
-    uint64_t reserved_3                                              : 15;
+#define EPTE_PAGE_FRAME_NUMBER                                       0xFFFFFFFFF000
+    uint64_t reserved_3                                              : 9;
+    uint64_t verify_guest_paging                                     : 1;
+#define EPTE_VERIFY_GUEST_PAGING                                     0x200000000000000
+    uint64_t paging_write_access                                     : 1;
+#define EPTE_PAGING_WRITE_ACCESS                                     0x400000000000000
+    uint64_t reserved_4                                              : 1;
+    uint64_t supervisor_shadow_stack                                 : 1;
+#define EPTE_SUPERVISOR_SHADOW_STACK                                 0x1000000000000000
+    uint64_t sub_page_write_permissions                              : 1;
+#define EPTE_SUB_PAGE_WRITE_PERMISSIONS                              0x2000000000000000
+    uint64_t reserved_5                                              : 1;
     uint64_t suppress_ve                                             : 1;
-#define EPT_PTE_SUPPRESS_VE                                          0x8000000000000000
+#define EPTE_SUPPRESS_VE                                             0x8000000000000000
   };
 
   uint64_t Flags;
-} ept_pte;
+} epte;
 
 typedef union {
   struct {
@@ -6016,6 +6344,22 @@ typedef struct {
   uint64_t linear_address;
 } invvpid_descriptor;
 
+typedef union {
+  struct {
+    uint64_t reserved_1                                              : 3;
+    uint64_t page_level_write_through                                : 1;
+#define HLATP_PAGE_LEVEL_WRITE_THROUGH                               0x08
+    uint64_t page_level_cache_disable                                : 1;
+#define HLATP_PAGE_LEVEL_CACHE_DISABLE                               0x10
+    uint64_t reserved_2                                              : 7;
+    uint64_t page_frame_number                                       : 36;
+#define HLATP_PAGE_FRAME_NUMBER                                      0xFFFFFFFFF000
+    uint64_t reserved_3                                              : 16;
+  };
+
+  uint64_t Flags;
+} hlatp;
+
 typedef struct {
   struct {
     uint32_t revision_id                                             : 31;
@@ -6071,6 +6415,7 @@ typedef union {
 #define VMCS_CTRL_VPID                                               0x00000000
 #define VMCS_CTRL_POSTED_INTR_NOTIFY_VECTOR                          0x00000002
 #define VMCS_CTRL_EPTP_INDEX                                         0x00000004
+#define VMCS_CTRL_HLAT_PREFIX_SIZE                                   0x00000006
 /**
  * @}
  */
@@ -6148,7 +6493,12 @@ typedef union {
 #define VMCS_CTRL_VIRTXCPT_INFO_ADDR                                 0x0000202A
 #define VMCS_CTRL_XSS_EXITING_BITMAP                                 0x0000202C
 #define VMCS_CTRL_ENCLS_EXITING_BITMAP                               0x0000202E
+#define VMCS_CTRL_SPP_TABLE_POINTER                                  0x00002030
 #define VMCS_CTRL_TSC_MULTIPLIER                                     0x00002032
+#define VMCS_CTRL_PROC_EXEC3                                         0x00002034
+#define VMCS_CTRL_ENCLV_EXITING_BITMAP                               0x00002036
+#define VMCS_CTRL_HLATP                                              0x00002040
+#define VMCS_CTRL_SECONDARY_EXIT                                     0x00002044
 /**
  * @}
  */
@@ -6179,6 +6529,8 @@ typedef union {
 #define VMCS_GUEST_PDPTE3                                            0x00002810
 #define VMCS_GUEST_BNDCFGS                                           0x00002812
 #define VMCS_GUEST_RTIT_CTL                                          0x00002814
+#define VMCS_GUEST_LBR_CTL                                           0x00002816
+#define VMCS_GUEST_PKRS                                              0x00002818
 /**
  * @}
  */
@@ -6191,6 +6543,7 @@ typedef union {
 #define VMCS_HOST_PAT                                                0x00002C00
 #define VMCS_HOST_EFER                                               0x00002C02
 #define VMCS_HOST_PERF_GLOBAL_CTRL                                   0x00002C04
+#define VMCS_HOST_PKRS                                               0x00002C06
 /**
  * @}
  */
@@ -6215,7 +6568,7 @@ typedef union {
 #define VMCS_CTRL_PAGEFAULT_ERROR_MASK                               0x00004006
 #define VMCS_CTRL_PAGEFAULT_ERROR_MATCH                              0x00004008
 #define VMCS_CTRL_CR3_TARGET_COUNT                                   0x0000400A
-#define VMCS_CTRL_EXIT                                               0x0000400C
+#define VMCS_CTRL_PRIMARY_EXIT                                       0x0000400C
 #define VMCS_CTRL_EXIT_MSR_STORE_COUNT                               0x0000400E
 #define VMCS_CTRL_EXIT_MSR_LOAD_COUNT                                0x00004010
 #define VMCS_CTRL_ENTRY                                              0x00004012
@@ -6323,7 +6676,7 @@ typedef union {
  */
 #define VMCS_EXIT_QUALIFICATION                                      0x00006400
 #define VMCS_IO_RCX                                                  0x00006402
-#define VMCS_IO_RSX                                                  0x00006404
+#define VMCS_IO_RSI                                                  0x00006404
 #define VMCS_IO_RDI                                                  0x00006406
 #define VMCS_IO_RIP                                                  0x00006408
 #define VMCS_EXIT_GUEST_LINEAR_ADDR                                  0x0000640A
@@ -6600,6 +6953,18 @@ typedef union {
  *           Exceptions
  * @{
  */
+typedef union {
+  struct {
+    uint32_t cpec                                                    : 15;
+#define CONTROL_PROTECTION_EXCEPTION_CPEC                            0x7FFF
+    uint32_t encl                                                    : 1;
+#define CONTROL_PROTECTION_EXCEPTION_ENCL                            0x8000
+    uint32_t reserved_1                                              : 16;
+  };
+
+  uint32_t Flags;
+} control_protection_exception;
+
 #define DIVIDE_ERROR                                                 0x00000000
 #define DEBUG                                                        0x00000001
 #define NMI                                                          0x00000002
@@ -6620,6 +6985,7 @@ typedef union {
 #define MACHINE_CHECK                                                0x00000012
 #define SIMD_FLOATING_POINT_ERROR                                    0x00000013
 #define VIRTUALIZATION_EXCEPTION                                     0x00000014
+#define CONTROL_PROTECTION_EXCEPTION                                 0x00000015
 /**
  * @}
  */
@@ -6654,7 +7020,11 @@ typedef union {
 #define PAGE_FAULT_EXCEPTION_EXECUTE                                 0x10
     uint32_t protection_key_violation                                : 1;
 #define PAGE_FAULT_EXCEPTION_PROTECTION_KEY_VIOLATION                0x20
-    uint32_t reserved_1                                              : 9;
+    uint32_t shadow_stack                                            : 1;
+#define PAGE_FAULT_EXCEPTION_SHADOW_STACK                            0x40
+    uint32_t hlat                                                    : 1;
+#define PAGE_FAULT_EXCEPTION_HLAT                                    0x80
+    uint32_t reserved_1                                              : 7;
     uint32_t sgx                                                     : 1;
 #define PAGE_FAULT_EXCEPTION_SGX                                     0x8000
     uint32_t reserved_2                                              : 16;
@@ -6711,7 +7081,359 @@ typedef union {
 } xcr0;
 
 /**
+ * @defgroup vtd \
+ *           VTD
+ * @{
+ */
+typedef struct {
+  union {
+    struct {
+      uint64_t present                                               : 1;
+#define VTD_Lower64_PRESENT                                          0x01
+      uint64_t reserved_1                                            : 11;
+      uint64_t context_table_pointer                                 : 52;
+#define VTD_Lower64_CONTEXT_TABLE_POINTER                            0xFFFFFFFFFFFFF000
+    };
+
+    uint64_t Flags;
+  } lower64;
+
+  union {
+    struct {
+      uint64_t reserved                                              : 64;
+#define VTD_Upper64_RESERVED                                         0xFFFFFFFFFFFFFFFF
+    };
+
+    uint64_t Flags;
+  } upper64;
+
+} vtd_root_entry;
+
+typedef struct {
+  union {
+    struct {
+      uint64_t present                                               : 1;
+#define VTD_Lower64_PRESENT                                          0x01
+      uint64_t fault_processing_disable                              : 1;
+#define VTD_Lower64_FAULT_PROCESSING_DISABLE                         0x02
+      uint64_t translation_type                                      : 2;
+#define VTD_Lower64_TRANSLATION_TYPE                                 0x0C
+      uint64_t reserved_1                                            : 8;
+      uint64_t second_level_page_translation_pointer                 : 52;
+#define VTD_Lower64_SECOND_LEVEL_PAGE_TRANSLATION_POINTER            0xFFFFFFFFFFFFF000
+    };
+
+    uint64_t Flags;
+  } lower64;
+
+  union {
+    struct {
+      uint64_t address_width                                         : 3;
+#define VTD_Upper64_ADDRESS_WIDTH                                    0x07
+      uint64_t ignored                                               : 4;
+#define VTD_Upper64_IGNORED                                          0x78
+      uint64_t reserved_1                                            : 1;
+      uint64_t domain_identifier                                     : 10;
+#define VTD_Upper64_DOMAIN_IDENTIFIER                                0x3FF00
+      uint64_t reserved_2                                            : 46;
+    };
+
+    uint64_t Flags;
+  } upper64;
+
+} vtd_context_entry;
+
+/**
+ * @defgroup vtd_entry_count \
+ *           Table entry counts
+ * @{
+ */
+#define VTD_ROOT_ENTRY_COUNT                                         0x00000100
+#define VTD_CONTEXT_ENTRY_COUNT                                      0x00000100
+/**
  * @}
  */
 
+#define VTD_VERSION                                                  0x00000000
+typedef union {
+  struct {
+    uint32_t minor                                                   : 4;
+#define VTD_VERSION_MINOR                                            0x0F
+    uint32_t major                                                   : 4;
+#define VTD_VERSION_MAJOR                                            0xF0
+    uint32_t reserved_1                                              : 24;
+  };
+
+  uint32_t Flags;
+} vtd_version_register;
+
+#define VTD_CAPABILITY                                               0x00000008
+typedef union {
+  struct {
+    uint64_t number_of_domains_supported                             : 3;
+#define VTD_CAPABILITY_NUMBER_OF_DOMAINS_SUPPORTED                   0x07
+    uint64_t advanced_fault_logging                                  : 1;
+#define VTD_CAPABILITY_ADVANCED_FAULT_LOGGING                        0x08
+    uint64_t required_write_buffer_flushing                          : 1;
+#define VTD_CAPABILITY_REQUIRED_WRITE_BUFFER_FLUSHING                0x10
+    uint64_t protected_low_memory_region                             : 1;
+#define VTD_CAPABILITY_PROTECTED_LOW_MEMORY_REGION                   0x20
+    uint64_t protected_high_memory_region                            : 1;
+#define VTD_CAPABILITY_PROTECTED_HIGH_MEMORY_REGION                  0x40
+    uint64_t caching_mode                                            : 1;
+#define VTD_CAPABILITY_CACHING_MODE                                  0x80
+    uint64_t supported_adjusted_guest_address_widths                 : 5;
+#define VTD_CAPABILITY_SUPPORTED_ADJUSTED_GUEST_ADDRESS_WIDTHS       0x1F00
+    uint64_t reserved_1                                              : 3;
+    uint64_t maximum_guest_address_width                             : 6;
+#define VTD_CAPABILITY_MAXIMUM_GUEST_ADDRESS_WIDTH                   0x3F0000
+    uint64_t zero_length_read                                        : 1;
+#define VTD_CAPABILITY_ZERO_LENGTH_READ                              0x400000
+    uint64_t deprecated                                              : 1;
+#define VTD_CAPABILITY_DEPRECATED                                    0x800000
+    uint64_t fault_recording_register_offset                         : 10;
+#define VTD_CAPABILITY_FAULT_RECORDING_REGISTER_OFFSET               0x3FF000000
+    uint64_t second_level_large_page_support                         : 4;
+#define VTD_CAPABILITY_SECOND_LEVEL_LARGE_PAGE_SUPPORT               0x3C00000000
+    uint64_t reserved_2                                              : 1;
+    uint64_t page_selective_invalidation                             : 1;
+#define VTD_CAPABILITY_PAGE_SELECTIVE_INVALIDATION                   0x8000000000
+    uint64_t number_of_fault_recording_registers                     : 8;
+#define VTD_CAPABILITY_NUMBER_OF_FAULT_RECORDING_REGISTERS           0xFF0000000000
+    uint64_t maximum_address_mask_value                              : 6;
+#define VTD_CAPABILITY_MAXIMUM_ADDRESS_MASK_VALUE                    0x3F000000000000
+    uint64_t write_draining                                          : 1;
+#define VTD_CAPABILITY_WRITE_DRAINING                                0x40000000000000
+    uint64_t read_draining                                           : 1;
+#define VTD_CAPABILITY_READ_DRAINING                                 0x80000000000000
+    uint64_t first_level_1gbyte_page_support                         : 1;
+#define VTD_CAPABILITY_FIRST_LEVEL_1GBYTE_PAGE_SUPPORT               0x100000000000000
+    uint64_t reserved_3                                              : 2;
+    uint64_t posted_interrupts_support                               : 1;
+#define VTD_CAPABILITY_POSTED_INTERRUPTS_SUPPORT                     0x800000000000000
+    uint64_t first_level_5level_paging_support                       : 1;
+#define VTD_CAPABILITY_FIRST_LEVEL_5LEVEL_PAGING_SUPPORT             0x1000000000000000
+    uint64_t reserved_4                                              : 1;
+    uint64_t enhanced_set_interrupt_remap_table_pointer_support      : 1;
+#define VTD_CAPABILITY_ENHANCED_SET_INTERRUPT_REMAP_TABLE_POINTER_SUPPORT 0x4000000000000000
+    uint64_t enhanced_set_root_table_pointer_support                 : 1;
+#define VTD_CAPABILITY_ENHANCED_SET_ROOT_TABLE_POINTER_SUPPORT       0x8000000000000000
+  };
+
+  uint64_t Flags;
+} vtd_capability_register;
+
+#define VTD_EXTENDED_CAPABILITY                                      0x00000010
+typedef union {
+  struct {
+    uint64_t page_walk_coherency                                     : 1;
+#define VTD_EXTENDED_CAPABILITY_PAGE_WALK_COHERENCY                  0x01
+    uint64_t queued_invalidation_support                             : 1;
+#define VTD_EXTENDED_CAPABILITY_QUEUED_INVALIDATION_SUPPORT          0x02
+    uint64_t device_tlb_support                                      : 1;
+#define VTD_EXTENDED_CAPABILITY_DEVICE_TLB_SUPPORT                   0x04
+    uint64_t interrupt_remapping_support                             : 1;
+#define VTD_EXTENDED_CAPABILITY_INTERRUPT_REMAPPING_SUPPORT          0x08
+    uint64_t extended_interrupt_mode                                 : 1;
+#define VTD_EXTENDED_CAPABILITY_EXTENDED_INTERRUPT_MODE              0x10
+    uint64_t deprecated1                                             : 1;
+#define VTD_EXTENDED_CAPABILITY_DEPRECATED1                          0x20
+    uint64_t pass_through                                            : 1;
+#define VTD_EXTENDED_CAPABILITY_PASS_THROUGH                         0x40
+    uint64_t snoop_control                                           : 1;
+#define VTD_EXTENDED_CAPABILITY_SNOOP_CONTROL                        0x80
+    uint64_t iotlb_register_offset                                   : 10;
+#define VTD_EXTENDED_CAPABILITY_IOTLB_REGISTER_OFFSET                0x3FF00
+    uint64_t reserved_1                                              : 2;
+    uint64_t maximum_handle_mask_value                               : 4;
+#define VTD_EXTENDED_CAPABILITY_MAXIMUM_HANDLE_MASK_VALUE            0xF00000
+    uint64_t deprecated2                                             : 1;
+#define VTD_EXTENDED_CAPABILITY_DEPRECATED2                          0x1000000
+    uint64_t memory_type_support                                     : 1;
+#define VTD_EXTENDED_CAPABILITY_MEMORY_TYPE_SUPPORT                  0x2000000
+    uint64_t nested_translation_support                              : 1;
+#define VTD_EXTENDED_CAPABILITY_NESTED_TRANSLATION_SUPPORT           0x4000000
+    uint64_t reserved_2                                              : 1;
+    uint64_t deprecated3                                             : 1;
+#define VTD_EXTENDED_CAPABILITY_DEPRECATED3                          0x10000000
+    uint64_t page_request_support                                    : 1;
+#define VTD_EXTENDED_CAPABILITY_PAGE_REQUEST_SUPPORT                 0x20000000
+    uint64_t execute_request_support                                 : 1;
+#define VTD_EXTENDED_CAPABILITY_EXECUTE_REQUEST_SUPPORT              0x40000000
+    uint64_t reserved_3                                              : 2;
+    uint64_t no_write_flag_support                                   : 1;
+#define VTD_EXTENDED_CAPABILITY_NO_WRITE_FLAG_SUPPORT                0x200000000
+    uint64_t extended_accessed_flag_support                          : 1;
+#define VTD_EXTENDED_CAPABILITY_EXTENDED_ACCESSED_FLAG_SUPPORT       0x400000000
+    uint64_t pasid_size_supported                                    : 5;
+#define VTD_EXTENDED_CAPABILITY_PASID_SIZE_SUPPORTED                 0xF800000000
+    uint64_t process_address_space_id_support                        : 1;
+#define VTD_EXTENDED_CAPABILITY_PROCESS_ADDRESS_SPACE_ID_SUPPORT     0x10000000000
+    uint64_t device_tlb_invalidation_throttle                        : 1;
+#define VTD_EXTENDED_CAPABILITY_DEVICE_TLB_INVALIDATION_THROTTLE     0x20000000000
+    uint64_t page_request_drain_support                              : 1;
+#define VTD_EXTENDED_CAPABILITY_PAGE_REQUEST_DRAIN_SUPPORT           0x40000000000
+    uint64_t scalable_mode_translation_support                       : 1;
+#define VTD_EXTENDED_CAPABILITY_SCALABLE_MODE_TRANSLATION_SUPPORT    0x80000000000
+    uint64_t virtual_command_support                                 : 1;
+#define VTD_EXTENDED_CAPABILITY_VIRTUAL_COMMAND_SUPPORT              0x100000000000
+    uint64_t second_level_accessed_dirty_support                     : 1;
+#define VTD_EXTENDED_CAPABILITY_SECOND_LEVEL_ACCESSED_DIRTY_SUPPORT  0x200000000000
+    uint64_t second_level_translation_support                        : 1;
+#define VTD_EXTENDED_CAPABILITY_SECOND_LEVEL_TRANSLATION_SUPPORT     0x400000000000
+    uint64_t first_level_translation_support                         : 1;
+#define VTD_EXTENDED_CAPABILITY_FIRST_LEVEL_TRANSLATION_SUPPORT      0x800000000000
+    uint64_t scalable_mode_page_walk_coherency                       : 1;
+#define VTD_EXTENDED_CAPABILITY_SCALABLE_MODE_PAGE_WALK_COHERENCY    0x1000000000000
+    uint64_t rid_pasid_support                                       : 1;
+#define VTD_EXTENDED_CAPABILITY_RID_PASID_SUPPORT                    0x2000000000000
+    uint64_t reserved_4                                              : 2;
+    uint64_t abort_dma_mode_support                                  : 1;
+#define VTD_EXTENDED_CAPABILITY_ABORT_DMA_MODE_SUPPORT               0x10000000000000
+    uint64_t rid_priv_support                                        : 1;
+#define VTD_EXTENDED_CAPABILITY_RID_PRIV_SUPPORT                     0x20000000000000
+    uint64_t reserved_5                                              : 10;
+  };
+
+  uint64_t Flags;
+} vtd_extended_capability_register;
+
+#define VTD_GLOBAL_COMMAND                                           0x00000018
+typedef union {
+  struct {
+    uint32_t reserved_1                                              : 23;
+    uint32_t compatibility_format_interrupt                          : 1;
+#define VTD_GLOBAL_COMMAND_COMPATIBILITY_FORMAT_INTERRUPT            0x800000
+    uint32_t set_interrupt_remap_table_pointer                       : 1;
+#define VTD_GLOBAL_COMMAND_SET_INTERRUPT_REMAP_TABLE_POINTER         0x1000000
+    uint32_t interrupt_remapping_enable                              : 1;
+#define VTD_GLOBAL_COMMAND_INTERRUPT_REMAPPING_ENABLE                0x2000000
+    uint32_t queued_invalidation_enable                              : 1;
+#define VTD_GLOBAL_COMMAND_QUEUED_INVALIDATION_ENABLE                0x4000000
+    uint32_t write_buffer_flush                                      : 1;
+#define VTD_GLOBAL_COMMAND_WRITE_BUFFER_FLUSH                        0x8000000
+    uint32_t enable_advanced_fault_logging                           : 1;
+#define VTD_GLOBAL_COMMAND_ENABLE_ADVANCED_FAULT_LOGGING             0x10000000
+    uint32_t set_fault_log                                           : 1;
+#define VTD_GLOBAL_COMMAND_SET_FAULT_LOG                             0x20000000
+    uint32_t set_root_table_pointer                                  : 1;
+#define VTD_GLOBAL_COMMAND_SET_ROOT_TABLE_POINTER                    0x40000000
+    uint32_t translation_enable                                      : 1;
+#define VTD_GLOBAL_COMMAND_TRANSLATION_ENABLE                        0x80000000
+  };
+
+  uint32_t Flags;
+} vtd_global_command_register;
+
+#define VTD_GLOBAL_STATUS                                            0x0000001C
+typedef union {
+  struct {
+    uint32_t reserved_1                                              : 23;
+    uint32_t compatibility_format_interrupt_status                   : 1;
+#define VTD_GLOBAL_STATUS_COMPATIBILITY_FORMAT_INTERRUPT_STATUS      0x800000
+    uint32_t interrupt_remapping_table_pointer_status                : 1;
+#define VTD_GLOBAL_STATUS_INTERRUPT_REMAPPING_TABLE_POINTER_STATUS   0x1000000
+    uint32_t interrupt_remapping_enable_status                       : 1;
+#define VTD_GLOBAL_STATUS_INTERRUPT_REMAPPING_ENABLE_STATUS          0x2000000
+    uint32_t queued_invalidation_enable_status                       : 1;
+#define VTD_GLOBAL_STATUS_QUEUED_INVALIDATION_ENABLE_STATUS          0x4000000
+    uint32_t write_buffer_flush_status                               : 1;
+#define VTD_GLOBAL_STATUS_WRITE_BUFFER_FLUSH_STATUS                  0x8000000
+    uint32_t advanced_fault_logging_status                           : 1;
+#define VTD_GLOBAL_STATUS_ADVANCED_FAULT_LOGGING_STATUS              0x10000000
+    uint32_t fault_log_status                                        : 1;
+#define VTD_GLOBAL_STATUS_FAULT_LOG_STATUS                           0x20000000
+    uint32_t root_table_pointer_status                               : 1;
+#define VTD_GLOBAL_STATUS_ROOT_TABLE_POINTER_STATUS                  0x40000000
+    uint32_t translation_enable_status                               : 1;
+#define VTD_GLOBAL_STATUS_TRANSLATION_ENABLE_STATUS                  0x80000000
+  };
+
+  uint32_t Flags;
+} vtd_global_status_register;
+
+#define VTD_ROOT_TABLE_ADDRESS                                       0x00000020
+typedef union {
+  struct {
+    uint64_t reserved_1                                              : 10;
+    uint64_t translation_table_mode                                  : 2;
+#define VTD_ROOT_TABLE_ADDRESS_TRANSLATION_TABLE_MODE                0xC00
+    uint64_t root_table_address                                      : 52;
+#define VTD_ROOT_TABLE_ADDRESS_ROOT_TABLE_ADDRESS                    0xFFFFFFFFFFFFF000
+  };
+
+  uint64_t Flags;
+} vtd_root_table_address_register;
+
+#define VTD_CONTEXT_COMMAND                                          0x00000028
+typedef union {
+  struct {
+    uint64_t domain_id                                               : 16;
+#define VTD_CONTEXT_COMMAND_DOMAIN_ID                                0xFFFF
+    uint64_t source_id                                               : 16;
+#define VTD_CONTEXT_COMMAND_SOURCE_ID                                0xFFFF0000
+    uint64_t function_mask                                           : 2;
+#define VTD_CONTEXT_COMMAND_FUNCTION_MASK                            0x300000000
+    uint64_t reserved_1                                              : 25;
+    uint64_t context_actual_invalidation_granularity                 : 2;
+#define VTD_CONTEXT_COMMAND_CONTEXT_ACTUAL_INVALIDATION_GRANULARITY  0x1800000000000000
+    uint64_t context_invalidation_request_granularity                : 2;
+#define VTD_CONTEXT_COMMAND_CONTEXT_INVALIDATION_REQUEST_GRANULARITY 0x6000000000000000
+    uint64_t invalidate_context_cache                                : 1;
+#define VTD_CONTEXT_COMMAND_INVALIDATE_CONTEXT_CACHE                 0x8000000000000000
+  };
+
+  uint64_t Flags;
+} vtd_context_command_register;
+
+#define VTD_INVALIDATE_ADDRESS                                       0x00000000
+typedef union {
+  struct {
+    uint64_t address_mask                                            : 6;
+#define VTD_INVALIDATE_ADDRESS_ADDRESS_MASK                          0x3F
+    uint64_t invalidation_hint                                       : 1;
+#define VTD_INVALIDATE_ADDRESS_INVALIDATION_HINT                     0x40
+    uint64_t reserved_1                                              : 5;
+    uint64_t page_address                                            : 52;
+#define VTD_INVALIDATE_ADDRESS_PAGE_ADDRESS                          0xFFFFFFFFFFFFF000
+  };
+
+  uint64_t Flags;
+} vtd_invalidate_address_register;
+
+#define VTD_IOTLB_INVALIDATE                                         0x00000008
+typedef union {
+  struct {
+    uint64_t reserved_1                                              : 32;
+    uint64_t domain_id                                               : 16;
+#define VTD_IOTLB_INVALIDATE_DOMAIN_ID                               0xFFFF00000000
+    uint64_t drain_writes                                            : 1;
+#define VTD_IOTLB_INVALIDATE_DRAIN_WRITES                            0x1000000000000
+    uint64_t drain_reads                                             : 1;
+#define VTD_IOTLB_INVALIDATE_DRAIN_READS                             0x2000000000000
+    uint64_t reserved_2                                              : 7;
+    uint64_t iotlb_actual_invalidation_granularity                   : 2;
+#define VTD_IOTLB_INVALIDATE_IOTLB_ACTUAL_INVALIDATION_GRANULARITY   0x600000000000000
+    uint64_t reserved_3                                              : 1;
+    uint64_t iotlb_invalidation_request_granularity                  : 2;
+#define VTD_IOTLB_INVALIDATE_IOTLB_INVALIDATION_REQUEST_GRANULARITY  0x3000000000000000
+    uint64_t reserved_4                                              : 1;
+    uint64_t invalidate_iotlb                                        : 1;
+#define VTD_IOTLB_INVALIDATE_INVALIDATE_IOTLB                        0x8000000000000000
+  };
+
+  uint64_t Flags;
+} vtd_iotlb_invalidate_register;
+
+/**
+ * @}
+ */
+
+/**
+ * @}
+ */
+
+#if defined(_MSC_EXTENSIONS)
+#pragma warning(pop)
+#endif
 

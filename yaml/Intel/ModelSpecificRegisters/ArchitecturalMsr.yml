@@ -250,6 +250,57 @@
         write to IA32_TSC will modify the local offset in IA32_TSC_ADJUST and the
         content of IA32_TSC, but does not affect the internal invariant TSC hardware.
 
+- value: 0x48
+  name: SPEC_CTRL
+  description: |
+    Speculation Control. The MSR bits are defined as logical processor scope. On some core
+    implementations, the bits may impact sibling logical processors on the same core. This
+    MSR has a value of 0 after reset and is unaffected by INIT# or SIPI#.
+  access: R/W
+  remarks: If any one of the enumeration conditions for defined bit field positions holds.
+  fields:
+  - name_with_suffix: REGISTER
+    type: bitfield
+    size: 64
+    fields:
+    - bit: 0
+      name: IBRS
+      description: |
+        IBRS: Indirect Branch Restricted Speculation (IBRS). Restricts speculation of indirect branch.
+      remarks: If CPUID.(EAX=07H,ECX=0):EDX[26]=1
+
+    - bit: 1
+      name: STIBP
+      description: |
+        STIBP: Single Thread Indirect Branch Predictors (STIBP). Prevents indirect branch predictions
+        on all logical processors on the core from being controlled by any sibling logical
+        processor in the same core.
+      remarks: If CPUID.(EAX=07H,ECX=0):EDX[27]=1
+
+    - bit: 2
+      name: SSBD
+      description: |
+        SSBD: Speculative Store Bypass Disable (SSBD). Delays speculative execution of a load until
+        the addresses for all older stores are known.
+      remarks: If CPUID.(EAX=07H,ECX=0):EDX[31]=1
+
+- value: 0x49
+  name: PRED_CMD
+  description: |
+    Prediction Command. Gives software a way to issue commands that affect the state of predictors.
+  access: WO
+  remarks: If any one of the enumeration conditions for defined bit field positions holds.
+  fields:
+  - name_with_suffix: REGISTER
+    type: bitfield
+    size: 64
+    fields:
+    - bit: 0
+      name: IBPB
+      description: |
+        IBPB: Indirect Branch Prediction Barrier (IBPB).
+      remarks: If CPUID.(EAX=07H,ECX=0):EDX[26]=1
+
 - value: 0x79
   short_name: BIOS_UPDT_TRIG
   long_name: BIOS_UPDATE_TRIGGER
@@ -542,6 +593,108 @@
 # ######################################################################################### #
 #                                                                                           #
 
+- value: 0x10A
+  name: ARCH_CAPABILITIES
+  description: Enumeration of Architectural Features.
+  access: RO
+  remarks: If CPUID.(EAX=07H,ECX=0):EDX[29]=1
+  fields:
+  - name_with_suffix: REGISTER
+    type: bitfield
+    size: 64
+    fields:
+    - bit: 0
+      name: RDCL_NO
+      description: |
+        RDCL_NO: The processor is not susceptible to Rogue Data Cache Load (RDCL).
+
+    - bit: 1
+      name: IBRS_ALL
+      description: |
+        IBRS_ALL: The processor supports enhanced IBRS.
+
+    - bit: 2
+      name: RSBA
+      description: |
+        RSBA: The processor supports RSB Alternate. Alternative branch predictors may be used
+        by RET instructions when the RSB is empty. SW using retpoline may be affected by
+        this behavior.
+
+    - bit: 3
+      name: SKIP_L1DFL_VMENTRY
+      description: |
+        SKIP_L1DFL_VMENTRY: A value of 1 indicates the hypervisor need not flush the L1D on VM entry.
+
+    - bit: 4
+      name: SSB_NO
+      description: |
+        SSB_NO: Processor is not susceptible to Speculative Store Bypass.
+
+    - bit: 5
+      name: MDS_NO
+      description: |
+        MDS_NO: Processor is not susceptible to Microarchitectural Data Sampling (MDS).
+
+    - bit: 6
+      name: IF_PSCHANGE_MC_NO
+      description: |
+        IF_PSCHANGE_MC_NO: The processor is not susceptible to a machine check error due to modifying
+        the size of a code page without TLB invalidation.
+
+    - bit: 7
+      name: TSX_CTRL
+      description: |
+        TSX_CTRL: If 1, indicates presence of IA32_TSX_CTRL MSR.
+
+    - bit: 8
+      name: TAA_NO
+      description: |
+        TAA_NO: If 1, processor is not affected by TAA.
+
+- value: 0x10B
+  name: FLUSH_CMD
+  description: |
+    Flush Command. Gives software a way to invalidate structures with finer granularity
+    than other architectural methods.
+  access: WO
+  remarks: If any one of the enumeration conditions for defined bit field positions holds.
+  fields:
+  - name_with_suffix: REGISTER
+    type: bitfield
+    size: 64
+    fields:
+    - bit: 0
+      name: L1D_FLUSH
+      description: |
+        L1D_FLUSH: Writeback and invalidate the L1 data cache.
+      remarks: If CPUID.(EAX=07H,ECX=0):EDX[28]=1
+
+- value: 0x122
+  name: TSX_CTRL
+  description: |
+    Flush Command. Gives software a way to invalidate structures with finer granularity
+    than other architectural methods.
+  access: WO
+  remarks: |
+    Thread scope. Not architecturally serializing.
+
+    Available when CPUID.ARCH_CAP(EAX=7H,ECX = 0):EDX[29] = 1 and IA32_ARCH_CAPABILITIES.bit 7 = 1.
+  fields:
+  - name_with_suffix: REGISTER
+    type: bitfield
+    size: 64
+    fields:
+    - bit: 0
+      name: RTM_DISABLE
+      description: |
+        RTM_DISABLE: When set to 1, XBEGIN will always abort with EAX code 0.
+
+    - bit: 1
+      name: TSX_CPUID_CLEAR
+      description: |
+        TSX_CPUID_CLEAR: When set to 1, CPUID.07H.EBX.RTM [bit 11] and CPUID.07H.EBX.HLE [bit 4]
+        report 0. When set to 0 and the SKU supports TSX, these bits will return 1.
+
 - value: 0x174
   name: SYSENTER_CS
   short_description: SYSENTER_CS_MSR
@@ -593,7 +746,6 @@
   access: R/W
   remarks: 06_01H
   reference: Vol2B[4.3(Instructions (M-U) | SYSCALL - Fast System Call)]
-
 
 - value: 0x179
   name: MCG_CAP
@@ -1831,8 +1983,10 @@
   - name: MTRR_VARIABLE_COUNT
     description: |
       Architecture defined number of variable range MTRRs.
+      See: Table 2-2. IA-32 Architectural MSRs
+    see: Vol3A[2.1(ARCHITECTURAL MSRS)]
     tag: Custom
-    value: 255
+    value: 10
 
   - name: MTRR_COUNT
     description: |
@@ -3047,6 +3201,15 @@
         The first processors to support the virtual-machine extensions supported only the 1-setting
         of this control.
 
+    - bit: 17
+      short_name: USE_TERTIARY_EXEC_CTRL
+      long_name: ACTIVATE_TERTIARY_CONTROLS
+      short_description: Determines whether the tertiary processor based VM-execution controls are used
+      long_description: |
+        This control determines whether the tertiary processor-based VM-execution controls are
+        used. If this control is 0, the logical processor operates as if all the tertiary processor-based
+        VM-execution controls were also 0.
+
     - bit: 19
       short_name: CR8_LOAD_EXIT
       long_name: CR8_LOAD_EXITING
@@ -3144,11 +3307,11 @@
 
 - value: 0x483
   name: VMX_EXIT_CTLS
-  description: Capability Reporting Register of VM-Exit Controls.
+  description: Capability Reporting Register of Primaryr VM-Exit Controls.
   access: R/O
   remarks: |
     If CPUID.01H:ECX.[5] = 1
-  see: Vol3D[A.4(VM-EXIT CONTROLS)]
+  see: Vol3D[A.4.1(Primaryr VM-Exit Controls)]
   reference: Vol3C[24.7.1(VM-Exit Controls)]
   fields:
   - name_with_suffix: REGISTER
@@ -3201,13 +3364,11 @@
       short_description: Whether the guest IA32_PAT MSR is saved on VM-exit
       long_description: This control determines whether the IA32_PAT MSR is saved on VM exit.
 
-
     - bit: 19
       short_name: LOAD_HOST_PAT_MSR
       long_name: LOAD_IA32_PAT
       short_description: Whether the host IA32_PAT MSR is loaded on VM-exit
       long_description: This control determines whether the IA32_PAT MSR is loaded on VM exit.
-
 
     - bit: 20
       short_name: SAVE_GUEST_EFER_MSR
@@ -3215,13 +3376,11 @@
       short_description: Whether the guest IA32_EFER MSR is saved on VM-exit
       long_description: This control determines whether the IA32_EFER MSR is saved on VM exit.
 
-
     - bit: 21
       short_name: LOAD_HOST_EFER_MSR
       long_name: LOAD_IA32_EFER
       short_description: Whether the host IA32_EFER MSR is loaded on VM-exit
       long_description: This control determines whether the IA32_EFER MSR is loaded on VM exit.
-
 
     - bit: 22
       short_name: SAVE_VMX_PREEMPT_TIMER
@@ -3229,16 +3388,10 @@
       short_description: Whether the value of the VMX preemption timer is saved on every VM-exit
       long_description: This control determines whether the value of the VMX-preemption timer is saved on VM exit.
 
-    #
-    # Note:
-    # Bit 23 & Bit 24 is not in virtualbox's hm_vmx.h
-    #
-
     - bit: 23
       short_name: CLEAR_BNDCFGS
       long_name: CLEAR_IA32_BNDCFGS
       description: This control determines whether the IA32_BNDCFGS MSR is cleared on VM exit.
-
 
     - bit: 24
       name: CONCEAL_VMX_FROM_PT
@@ -3246,6 +3399,39 @@
         If this control is 1, Intel Processor Trace does not produce a paging information packet (PIP) on
         a VM exit or a VMCS packet on an SMM VM exit.
       see: Vol3C[35(INTEL® PROCESSOR TRACE)]
+
+    - bit: 25
+      short_name: CLEAR_RTIT_CTL
+      long_name: CLEAR_IA32_RTIT_CTL
+      description: |
+        This control determines whether the IA32_RTIT_CTL MSR is cleared on VM exit.
+      see: Vol3C[35(INTEL® PROCESSOR TRACE)]
+
+    - bit: 26
+      short_name: CLEAR_LBR_CTL
+      long_name: CLEAR_IA32_LBR_CTL
+      description: This control determines whether the IA32_LBR_CTL MSR is cleared on VM exit.
+
+    - bit: 28
+      short_name: LOAD_HOST_CET_STATE
+      long_name: LOAD_IA32_CET_STATE
+      description: |
+        This control determines whether CET-related MSRs and SPP are loaded on VM exit.
+      see: Vol1[18(CONTROL-FLOW ENFORCEMENT TECHNOLOGY (CET))]
+
+    - bit: 29
+      short_name: LOAD_HOST_PKRS
+      long_name: LOAD_IA32_PKRS
+      description: |
+        This control determines whether the IA32_PKRS MSR is loaded on VM exit.
+
+    - bit: 31
+      short_name: USE_SECONDARY_CONTROLS
+      long_name: ACTIVATE_SECONDARY_CONTROLS
+      description: |
+        This control determines whether the secondary VM-exit controls
+        are used. If this control is 0, the logical processor operates as if all the secondary
+        VM-exit controls were also 0.
 
 - value: 0x484
   name: VMX_ENTRY_CTLS
@@ -3336,6 +3522,16 @@
     - bit: 20
       name: LOAD_CET_STATE
       description: This control determines whether CET-related MSRs and SPP are loaded on VM entry.
+
+    - bit: 21
+      short_name: LOAD_GUEST_LBR_CTL
+      long_name: LOAD_IA32_LBR_CTL
+      description: This control determines whether the IA32_LBR_CTL MSR is loaded on VM entry.
+
+    - bit: 22
+      short_name: LOAD_GUEST_PKRS
+      long_name: LOAD_IA32_PKRS
+      description: This control determines whether the IA32_PKRS MSR is loaded on VM entry.
 
 - value: 0x485
   name: VMX_MISC
@@ -3843,6 +4039,13 @@
         This reporting is done only if this bit is read as 1.
       see: Vol3C[27.2.1(Basic VM-Exit Information)]
 
+    - bit: 23
+      short_name: SUPERVISOR_SHADOW_STACK
+      long_name: SUPERVISOR_SHADOW_STACK
+      description: |
+        If bit 23 is read as 1, supervisor shadow-stack control is supported.
+      see: Vol3C[28.3.3.2(EPT Violations)]
+
     - bit: 25
       short_name: INVEPT_SINGLE_CONTEXT
       long_name: INVEPT_SINGLE_CONTEXT
@@ -3885,6 +4088,14 @@
       short_name: INVVPID_SINGLE_CONTEXT_RETAIN_GLOBALS
       long_name: INVVPID_SINGLE_CONTEXT_RETAIN_GLOBALS
       description: When set to 1, the single-context-retaining-globals INVVPID type is supported.
+
+    - bit: 48-53
+      short_name: MAX_HLAT_PREFIX_SIZE
+      long_name: MAX_HLAT_PREFIX_SIZE
+      description: |
+        Enumerate the maximum HLAT prefix size. It is expected that any processor that supports the
+        1-setting of the "enable HLAT" VM-execution control will enumerate this value as 1.
+      see: Vol3A[4.5.1(Ordinary Paging and HLAT Paging)]
 
 - name: VMX_TRUE_CTLS
   short_description: IA32_VMX_TRUE_(x)_CTLS
@@ -3953,6 +4164,70 @@
       name: EPTP_SWITCHING
       description: The EPTP-switching VM function changes the EPT pointer to a value chosen from the EPTP list.
       see: Vol3C[25.5.5.3(EPTP Switching)]
+
+- value: 0x492
+  name: VMX_PROCBASED_CTLS3
+  description: Capability Reporting Register of Tertiary Processor-Based VM-Execution Controls.
+  access: R/O
+  remarks: |
+    If ( CPUID.01H:ECX.[5] && IA32_VMX_PROCBASED_CTLS[49] )
+  see: Vol3D[A.3.4(Tertiary Processor-Based VM-Execution Controls)]
+  reference: Vol3D[24.6.2(Processor-Based VM-Execution Controls)]
+  fields:
+  - name_with_suffix: REGISTER
+    type: bitfield
+    size: 64
+    fields:
+    - bit: 0
+      short_name: LOADIWKEY
+      long_name: LOADIWKEY_EXITING
+      short_description: Executions of LOADIWKEY cause VM exits.
+      long_description: |
+        This control determines whether executions of LOADIWKEY cause VM exits.
+
+    - bit: 1
+      short_name: HLAT
+      long_name: ENABLE_HLAT
+      short_description: Enables hypervisor-managed linear-address translation
+      long_description: |
+        This control enables hypervisor-managed linear-address translation.
+      see: Vol3A[4.5.1(Ordinary Paging and HLAT Paging)]
+
+    - bit: 2
+      short_name: EPT_PAGING_WRITE
+      long_name: EPT_PAGING_WRITE
+      short_description: |
+        If this control is 1, EPT permissions can be specified to allow writes only for paging-related control updates
+      long_description: |
+        If this control is 1, EPT permissions can be specified to allow writes only for paging-related control updates.
+      see: Vol3C[28.3.3.2(EPT Violations)]
+
+    - bit: 3
+      short_name: GUEST_PAGING
+      long_name: GUEST_PAGING
+      short_description: |
+        If this control is 1, EPT permissions can be specified to prevent accesses using linear addresses
+        verification whose translation has certain properties.
+      long_description: |
+        If this control is 1, EPT permissions can be specified to prevent accesses using linear addresses
+        verification whose translation has certain properties.
+      see: Vol3C[28.3.3.2(EPT Violations)]
+
+- value: 0x493
+  name: VMX_EXIT_CTLS2
+  description: Capability Reporting Register of Secondary VM-Exit Controls.
+  access: R/O
+  remarks: |
+    If ( CPUID.01H:ECX.[5] && IA32_VMX_EXIT_CTLS[63] )
+  see: Vol3D[A.4.2(Secondary VM-Exit Controls)]
+  reference: Vol3C[24.7.1(VM-Exit Controls)]
+  fields:
+  - name_with_suffix: REGISTER
+    type: bitfield
+    size: 64
+    fields:
+    - bit: 0-63
+      name: RESERVED
 
 #
 # END-OF-VMX
@@ -4661,6 +4936,202 @@
   remarks: |
     If CPUID.01H:EDX.DS[21] = 1
   see: Vol3B[18.6.3.4(Debug Store (DS) Mechanism)]
+
+- value: 0x6A0
+  name: U_CET
+  description: Configure User Mode CET
+  access: R/W
+  remarks: |
+    - Bits 1:0 are defined if CPUID.(EAX=07H,ECX=0H):ECX.CET_SS[07] = 1.
+    - Bits 5:2 and bits 63:10 are defined if CPUID.(EAX=07H,ECX=0H):EDX.CET_IBT[20] = 1.
+  fields:
+  - name_with_suffix: REGISTER
+    type: bitfield
+    size: 64
+    fields:
+    - bit: 0
+      name: SH_STK_EN
+      description: When set to 1, enable shadow stacks at CPL3.
+      see: Vol1[18(CONTROL-FLOW ENFORCEMENT TECHNOLOGY (CET))]
+
+    - bit: 1
+      name: WR_SHSTK_EN
+      description: When set to 1, enables the WRSSD/WRSSQ instructions.
+      see: Vol1[18(CONTROL-FLOW ENFORCEMENT TECHNOLOGY (CET))]
+
+    - bit: 2
+      name: ENDBR_EN
+      description: When set to 1, enables indirect branch tracking
+      see: Vol1[18(CONTROL-FLOW ENFORCEMENT TECHNOLOGY (CET))]
+
+    - bit: 3
+      name: LEG_IW_EN
+      description: Enable legacy compatibility treatment for indirect branch tracking.
+      see: Vol1[18(CONTROL-FLOW ENFORCEMENT TECHNOLOGY (CET))]
+
+    - bit: 4
+      name: NO_TRACK_EN
+      description: When set to 1, enables use of no-track prefix for indirect branch tracking.
+      see: Vol1[18(CONTROL-FLOW ENFORCEMENT TECHNOLOGY (CET))]
+
+    - bit: 5
+      name: SUPPRESS_DIS
+      description: When set to 1, disables suppression of CET indirect branch tracking on legacy compatibility.
+      see: Vol1[18(CONTROL-FLOW ENFORCEMENT TECHNOLOGY (CET))]
+
+    - bit: 10
+      name: SUPPRESS
+      description: |
+        When set to 1, indirect branch tracking is suppressed. This bit can be written to 1 only if
+        TRACKER is written as IDLE.
+      see: Vol1[18(CONTROL-FLOW ENFORCEMENT TECHNOLOGY (CET))]
+
+    - bit: 11
+      name: TRACKER
+      description: |
+        Value of the indirect branch tracking state machine. Values: IDLE (0), WAIT_FOR_ENDBRANCH(1).
+      see: Vol1[18(CONTROL-FLOW ENFORCEMENT TECHNOLOGY (CET))]
+
+    - bit: 12-63
+      name: EB_LEG_BITMAP_BASE
+      description: |
+        Linear address bits 63:12 of a legacy code page bitmap used for legacy compatibility when
+        indirect branch tracking is enabled. If the processor does not support Intel 64 architecture,
+        these fields have only 32 bits; bits 63:32 of the MSRs are reserved. On processors that support
+        Intel 64 architecture this value cannot represent a non-canonical address. In protected mode,
+        only 31:0 are loaded. The linear address written must be aligned to 8 bytes and bits 2:0 must
+        be 0 (hardware requires bits 1:0 to be 0).
+      see: Vol1[18(CONTROL-FLOW ENFORCEMENT TECHNOLOGY (CET))]
+
+- value: 0x6A2
+  name: S_CET
+  description: Configure Supervisor Mode CET
+  access: R/W
+  remarks: |
+    - Bits 1:0 are defined if CPUID.(EAX=07H,ECX=0H):ECX.CET_SS[07] = 1.
+    - Bits 5:2 and bits 63:10 are defined if CPUID.(EAX=07H,ECX=0H):EDX.CET_IBT[20] = 1.
+  fields:
+  - name_with_suffix: REGISTER
+    type: bitfield
+    size: 64
+    fields:
+    - bit: 0
+      name: SH_STK_EN
+      description: When set to 1, enable shadow stacks at CPL0.
+      see: Vol1[18(CONTROL-FLOW ENFORCEMENT TECHNOLOGY (CET))]
+
+    - bit: 1
+      name: WR_SHSTK_EN
+      description: When set to 1, enables the WRSSD/WRSSQ instructions.
+      see: Vol1[18(CONTROL-FLOW ENFORCEMENT TECHNOLOGY (CET))]
+
+    - bit: 2
+      name: ENDBR_EN
+      description: When set to 1, enables indirect branch tracking
+      see: Vol1[18(CONTROL-FLOW ENFORCEMENT TECHNOLOGY (CET))]
+
+    - bit: 3
+      name: LEG_IW_EN
+      description: Enable legacy compatibility treatment for indirect branch tracking.
+      see: Vol1[18(CONTROL-FLOW ENFORCEMENT TECHNOLOGY (CET))]
+
+    - bit: 4
+      name: NO_TRACK_EN
+      description: When set to 1, enables use of no-track prefix for indirect branch tracking.
+      see: Vol1[18(CONTROL-FLOW ENFORCEMENT TECHNOLOGY (CET))]
+
+    - bit: 5
+      name: SUPPRESS_DIS
+      description: When set to 1, disables suppression of CET indirect branch tracking on legacy compatibility.
+      see: Vol1[18(CONTROL-FLOW ENFORCEMENT TECHNOLOGY (CET))]
+
+    - bit: 10
+      name: SUPPRESS
+      description: |
+        When set to 1, indirect branch tracking is suppressed. This bit can be written to 1 only if
+        TRACKER is written as IDLE.
+      see: Vol1[18(CONTROL-FLOW ENFORCEMENT TECHNOLOGY (CET))]
+
+    - bit: 11
+      name: TRACKER
+      description: |
+        Value of the indirect branch tracking state machine. Values: IDLE (0), WAIT_FOR_ENDBRANCH(1).
+      see: Vol1[18(CONTROL-FLOW ENFORCEMENT TECHNOLOGY (CET))]
+
+    - bit: 12-63
+      name: EB_LEG_BITMAP_BASE
+      description: |
+        Linear address bits 63:12 of a legacy code page bitmap used for legacy compatibility when
+        indirect branch tracking is enabled. If the processor does not support Intel 64 architecture,
+        these fields have only 32 bits; bits 63:32 of the MSRs are reserved. On processors that support
+        Intel 64 architecture this value cannot represent a non-canonical address. In protected mode,
+        only 31:0 are loaded. The linear address written must be aligned to 8 bytes and bits 2:0 must
+        be 0 (hardware requires bits 1:0 to be 0).
+      see: Vol1[18(CONTROL-FLOW ENFORCEMENT TECHNOLOGY (CET))]
+
+- value: 0x6A4
+  name: PL0_SSP
+  description: |
+    Linear address to be loaded into SSP on transition to privilege level 0.
+
+    If the processor does not support Intel 64 architecture, these fields have only 32 bits; bits
+    63:32 of the MSRs are reserved. On processors that support Intel 64 architecture this value cannot
+    represent a non-canonical address. In protected mode, only 31:0 are loaded. The linear address
+    written must be aligned to 8 bytes and bits 2:0 must be 0 (hardware requires bits 1:0 to be 0).
+  access: R/W
+  remarks: |
+    If CPUID.(EAX=07H, ECX=0H):ECX.CET_SS[07] = 1
+
+- value: 0x6A5
+  name: PL1_SSP
+  description: |
+    Linear address to be loaded into SSP on transition to privilege level 1.
+
+    If the processor does not support Intel 64 architecture, these fields have only 32 bits; bits
+    63:32 of the MSRs are reserved. On processors that support Intel 64 architecture this value cannot
+    represent a non-canonical address. In protected mode, only 31:0 are loaded. The linear address
+    written must be aligned to 8 bytes and bits 2:0 must be 0 (hardware requires bits 1:0 to be 0).
+  access: R/W
+  remarks: |
+    If CPUID.(EAX=07H, ECX=0H):ECX.CET_SS[07] = 1
+
+- value: 0x6A6
+  name: PL2_SSP
+  description: |
+    Linear address to be loaded into SSP on transition to privilege level 2.
+
+    If the processor does not support Intel 64 architecture, these fields have only 32 bits; bits
+    63:32 of the MSRs are reserved. On processors that support Intel 64 architecture this value cannot
+    represent a non-canonical address. In protected mode, only 31:0 are loaded. The linear address
+    written must be aligned to 8 bytes and bits 2:0 must be 0 (hardware requires bits 1:0 to be 0).
+  access: R/W
+  remarks: |
+    If CPUID.(EAX=07H, ECX=0H):ECX.CET_SS[07] = 1
+
+- value: 0x6A7
+  name: PL3_SSP
+  description: |
+    Linear address to be loaded into SSP on transition to privilege level 3.
+
+    If the processor does not support Intel 64 architecture, these fields have only 32 bits; bits
+    63:32 of the MSRs are reserved. On processors that support Intel 64 architecture this value cannot
+    represent a non-canonical address. In protected mode, only 31:0 are loaded. The linear address
+    written must be aligned to 8 bytes and bits 2:0 must be 0 (hardware requires bits 1:0 to be 0).
+  access: R/W
+  remarks: |
+    If CPUID.(EAX=07H, ECX=0H):ECX.CET_SS[07] = 1
+
+- value: 0x6A8
+  name: INTERRUPT_SSP_TABLE_ADDR
+  description: |
+    Linear address of a table of seven shadow stack pointers that are selected in IA-32e mode using
+    the IST index (when not 0) from the interrupt gate descriptor.
+
+    This MSR is not present on processors that do not support Intel 64 architecture. This field cannot
+    represent a non-canonical address.
+  access: R/W
+  remarks: |
+    If CPUID.(EAX=07H, ECX=0H):ECX.CET_SS[07] = 1
 
 - value: 0x6E0
   name: TSC_DEADLINE
